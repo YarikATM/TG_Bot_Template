@@ -4,6 +4,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from config.config_reader import config
 from aiogram import F
+from handlers import start
+from DB.db import Database
+from middlewares.database import DBMiddleware
 
 
 # from handlers import admin
@@ -13,14 +16,24 @@ def setup_logging() -> None:
     logging.basicConfig(level=logging.DEBUG)
 
 
+def setup_database() -> Database:
+    return Database(host=config.DB_HOST, user=config.DB_USER.get_secret_value(),
+                    password=config.DB_PASSWORD.get_secret_value())
+
+
+def setup_middlewares(dp: Dispatcher) -> None:
+    dp.message.middleware(DBMiddleware(setup_database()))
+
+
 def setup_handlers(dp: Dispatcher) -> None:
-    # dp.include_router(admin.router)
-    pass
+    dp.include_router(start.router)
+    # start.router.message.middleware(DBMiddleware(setup_database()))
 
 
 async def setup_aiogram(dp: Dispatcher) -> None:
     logging.debug("Configuring aiogram")
     # create db connection
+    setup_middlewares(dp)
     setup_handlers(dp)
     # setup_middlewares(dp)
     logging.info("Configured aiogram")
@@ -34,6 +47,7 @@ async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
 def main() -> None:
     setup_logging()
 
+
     if config.DEBUG:
         bot_token = config.DEBUG_BOT_TOKEN
     else:
@@ -44,6 +58,7 @@ def main() -> None:
     dp = Dispatcher(
         # storage=SystemStorage
     )
+
 
     # start polling
     dp.startup.register(aiogram_on_startup_polling)

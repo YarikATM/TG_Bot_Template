@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     DEBUG_BOT_TOKEN: SecretStr
     BOT_TOKEN: SecretStr
     DEBUG: bool
+    DB_HOST: str
+    DB_USER: SecretStr
+    DB_PASSWORD: SecretStr
     # Начиная со второй версии pydantic, настройки класса настроек задаются
     # через model_config
     # В данном случае будет использоваться файла .env, который будет прочитан
