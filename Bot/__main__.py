@@ -7,6 +7,7 @@ from aiogram import F
 from handlers import start
 from DB.db import Database
 from middlewares.database import DBMiddleware
+from middlewares.IsAuth import CheckAuth
 
 
 # from handlers import admin
@@ -21,8 +22,10 @@ def setup_database() -> Database:
                     password=config.DB_PASSWORD.get_secret_value())
 
 
-def setup_middlewares(dp: Dispatcher) -> None:
-    dp.message.middleware(DBMiddleware(setup_database()))
+def setup_middlewares(dp: Dispatcher, db: Database, bot: Bot) -> None:
+    dp.message.middleware(DBMiddleware(db))
+    dp.message.outer_middleware(CheckAuth(db, bot))
+
 
 
 def setup_handlers(dp: Dispatcher) -> None:
@@ -30,10 +33,11 @@ def setup_handlers(dp: Dispatcher) -> None:
     # start.router.message.middleware(DBMiddleware(setup_database()))
 
 
-async def setup_aiogram(dp: Dispatcher) -> None:
+async def setup_aiogram(dp: Dispatcher, bot: Bot) -> None:
     logging.debug("Configuring aiogram")
     # create db connection
-    setup_middlewares(dp)
+    db = setup_database()
+    setup_middlewares(dp, db, bot)
     setup_handlers(dp)
     # setup_middlewares(dp)
     logging.info("Configured aiogram")
@@ -41,7 +45,7 @@ async def setup_aiogram(dp: Dispatcher) -> None:
 
 async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.delete_webhook(drop_pending_updates=True)
-    await setup_aiogram(dispatcher)
+    await setup_aiogram(dispatcher, bot)
 
 
 def main() -> None:
